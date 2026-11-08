@@ -1,12 +1,12 @@
 'use strict';
 /* =========================================================
    Oyun 1 — Kurbağa Zıplıyor
-   Sayı doğrusunda kurbağa n adım n adım zıplar.
+   Sayı doğrusunda kurbağa n adım n adım 100'e kadar zıplar.
    1) İzle-dinle  2) Sıra sende (doğru taşa dokun)  3) Yüzlük tabloda desen
    ========================================================= */
 Games.learn = {
   start(ctx) {
-    const n = ctx.n, S = ctx.stage, END = 10 * n, MAXK = END + n + 2;
+    const n = ctx.n, S = ctx.stage, K = kmax(n), END = K * n, MAXK = END + n + 2;
     Music.play('learn');
     S.className = 'stage st-pond';
     S.innerHTML =
@@ -14,8 +14,8 @@ Games.learn = {
       '<div class="lr-head"><div class="seq-bar lr-seq"></div></div>' +
       '<div class="nl-vp"><div class="nl-strip"></div></div>' +
       '<div class="msg lr-msg"></div>';
-    const vp = $('.nl-vp', S), strip = $('.nl-strip', S), msg = $('.lr-msg', S);
-    const chips = seqChips($('.lr-seq', S), 11, NUM_COLORS[n]);
+    const vp = $('.nl-vp', S), strip = $('.nl-strip', S), msg = $('.lr-msg', S), seqBar = $('.lr-seq', S);
+    const chips = seqChips(seqBar, K + 1, NUM_COLORS[n]);
 
     let W = vp.clientWidth, H = vp.clientHeight;
     const sp = clamp(W / (2.4 * n + 1.5), 50, 112);
@@ -82,24 +82,30 @@ Games.learn = {
       });
     }
 
-    /* 1) İzle ve dinle */
+    /* 1) İzle ve dinle — 100'e kadar */
     async function watch() {
-      await ctx.talk(msg, '👀 İzle ve dinle! Kurbağa her seferinde <b>' + n + ' adım</b> zıplayacak.',
-        'Hadi ' + TR.speakLabel(n) + ' saymayı öğrenelim! Kurbağa her seferinde ' + TR.words(n) + ' adım zıplayacak. İzle ve dinle!');
+      await ctx.talk(msg, '👀 İzle ve dinle! Kurbağa <b>' + n + ' adım ' + n + ' adım</b> zıplayıp <b>' + TR.datText(END) + '</b> kadar gidecek.',
+        'Hadi ' + TR.speakLabel(n) + ' saymayı öğrenelim! Kurbağa ' + TR.words(n) + ' adım ' + TR.words(n) + ' adım zıplayıp ' + TR.datSpeak(END) + ' kadar gidecek. İzle ve dinle!');
       land(0); chipSet(chips[0], '0');
       await ctx.talk(msg, 'Sıfırdan başlıyoruz…');
-      const dur = clamp(n * 200, 650, 1600);
-      for (let i = 1; i <= 10; i++) {
-        const k0 = (i - 1) * n, k1 = i * n;
-        await hop(k0, k1, dur, true);
+      for (let i = 1; i <= K; i++) {
+        const fast = i > 10, k0 = (i - 1) * n, k1 = i * n;
+        await hop(k0, k1, fast ? clamp(n * 140, 420, 1000) : clamp(n * 200, 650, 1600), true);
         land(k1); arc(k0, k1); chipSet(chips[i], String(k1));
         msg.innerHTML = k0 + ' + ' + n + ' = <b>' + k1 + '</b>';
-        ctx.progress(i, 20);
-        await Promise.all([ctx.say(String(k1)), ctx.wait(450)]);
+        ctx.progress(i, 2 * K);
+        await Promise.all([ctx.say(String(k1), { rate: fast ? 1.1 : 0.95 }), ctx.wait(fast ? 220 : 450)]);
+        if (i === 10 && K > 12) {
+          await ctx.talk(msg, 'Süper! 🚀 Devam ediyoruz, biraz daha hızlı!', 'Süper! Devam ediyoruz, biraz daha hızlı!');
+        }
       }
       await ctx.wait(300);
-      await ctx.talk(msg, 'Süper! Şimdi hep birlikte sayalım 🎶', 'Süper! Şimdi hep birlikte sayalım.');
-      await recite(ctx, chips, chips.map((c, i) => i * n));
+      if (K <= 12) {
+        await ctx.talk(msg, 'Süper! Şimdi hep birlikte sayalım 🎶', 'Süper! Şimdi hep birlikte sayalım.');
+        await recite(ctx, chips, chips.map((c, i) => i * n));
+      } else {
+        await ctx.talk(msg, 'Süper! 🎉 <b>' + TR.datText(END) + '</b> kadar saydık!');
+      }
     }
 
     /* 2) Sıra sende */
@@ -109,6 +115,7 @@ Games.learn = {
       arcs.forEach(a => a.remove()); arcs = [];
       cols.forEach((c, k) => { if (k) c.classList.remove('lily'); });
       chips.forEach((c, i) => { if (i) { c.className = 'chip empty'; c.textContent = ''; } });
+      seqFocus(seqBar, 0);
       Sound.sfx.whoosh();
       await hop(END, 0, 1100, false);
       strip.classList.add('tapmode');
@@ -121,13 +128,14 @@ Games.learn = {
           if (k <= cur) return;
           if (k === target) {
             busy = true; clearHint();
-            await hop(cur, target, clamp(n * 160, 550, 1300), true);
+            await hop(cur, target, clamp(n * 130, 420, 1100), true);
             land(target); arc(cur, target); cur = target;
             const i = cur / n;
             chipSet(chips[i], String(cur)); ctx.correct++;
-            ctx.progress(10 + i, 20); Sound.sfx.correct();
+            ctx.progress(K + i, 2 * K); Sound.sfx.correct();
             msg.innerHTML = (cur - n) + ' + ' + n + ' = <b>' + cur + '</b>';
-            await Promise.all([ctx.say(String(cur)), ctx.wait(350)]);
+            await Promise.all([ctx.say(String(cur)), ctx.wait(250)]);
+            if (i % 10 === 0 && cur < END) { msg.innerHTML = 'Harika! 💪 Devam et!'; restartAnim(msg, 'msg-in'); }
             wrongHere = 0; busy = false;
             if (cur >= END) resolve();
           } else {
@@ -166,24 +174,25 @@ Games.learn = {
         h('div', { class: 'lr-final-title' }, '🔢 ' + TR.label(n) + ' sayılar yüzlük tabloda'),
         hb.grid, btn)));
       await ctx.say('Bak! ' + TR.speakLabel(n) + ' sayınca tabloda güzel bir desen oluşuyor.');
+      const gap = clamp(2200 / K, 70, 200);
       let i = 0;
-      for (let m = n; m <= 100; m += n, i++) {
-        hb.cells[m - 1].classList.add(m <= END ? 'hl' : 'hl2');
+      for (let m = n; m <= END; m += n, i++) {
+        hb.cells[m - 1].classList.add('hl');
         Sound.bell(72 + PENTA[i % PENTA.length], undefined, 0.05);
-        await ctx.wait(m <= END ? 200 : 90);
+        await ctx.wait(gap);
       }
       await new Promise(res => onTap(btn, () => { Sound.sfx.click(); res(); }));
     }
 
     (async () => {
-      ctx.progress(0, 20);
+      ctx.progress(0, 2 * K);
       await watch();
       await practice();
       Sound.sfx.fanfare(); FX.confetti(80);
       const p = praise();
       await ctx.talk(msg, p + ' 🎉 Kurbağa hedefe ulaştı: <b>' + END + '</b>', p + ' Kurbağa hedefe ulaştı!');
       await finale();
-      ctx.finish({ stars: starsFrom(ctx.wrong, 1, 4) });
+      ctx.finish({ stars: starsBy(ctx.wrong, K) });
     })();
   }
 };

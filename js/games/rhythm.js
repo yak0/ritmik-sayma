@@ -17,7 +17,7 @@ const DRUM_SVG = '<svg viewBox="0 0 200 170" aria-hidden="true">' +
 
 Games.rhythm = {
   start(ctx) {
-    const n = ctx.n, L = ctx.lv, S = ctx.stage, END = 10 * n;
+    const n = ctx.n, L = ctx.lv, S = ctx.stage, K = kmax(n), END = K * n; // 100'e kadar
     Music.stop();
     const bpm = L.rhythmBpm + (n - 2) * L.rhythmStep, beat = 60 / bpm, win = beat * L.rhythmWin;
     S.className = 'stage st-rhythm';
@@ -31,7 +31,7 @@ Games.rhythm = {
       '<div class="msg rh-msg"></div>';
     const lane = $('.rh-lane', S), ring = $('.rh-ring', S), bubWrap = $('.rh-bubbles', S), fb = $('.rh-fb', S);
     const dotsEl = $('.rh-dots', S), big = $('.rh-big', S), drum = $('.rh-drum', S), countEl = $('.rh-count', S), msg = $('.rh-msg', S);
-    const chips = seqChips($('.rh-seq', S), 10, NUM_COLORS[n]);
+    const chips = seqChips($('.rh-seq', S), K, NUM_COLORS[n]);
 
     // grup noktaları: 1 2 ... 🥁
     const dots = [];
@@ -180,26 +180,26 @@ Games.rhythm = {
       const r = ring.getBoundingClientRect();
       FX.burst(r.left + r.width / 2, r.top + r.height / 2, '#ffd23f', 18);
       ctx.say(String(i), { rate: 1.15 });
-      ctx.progress(hits + misses, 10);
+      ctx.progress(hits + misses, K);
     }
     function markMiss(i) {
       misses++;
       bubs[i].classList.add('missed');
       chipSet(chips[i / n - 1], String(i), 'miss');
       big.textContent = i; big.className = 'rh-big dim'; restartAnim(big, 'show');
-      ctx.progress(hits + misses, 10);
+      ctx.progress(hits + misses, K);
     }
 
     async function finishUp() {
       countEl.classList.remove('show');
       await ctx.wait(500);
-      const p = hits >= 9 ? praise() : hits >= 5 ? 'Güzel ritim!' : 'İyi deneme!';
-      Sound.sfx.fanfare(); if (hits >= 6) FX.confetti(80);
-      await ctx.talk(msg, p + ' 🥁 ' + hits + ' / 10 doğru vuruş. Hep birlikte sayalım!', p + ' Hep birlikte sayalım!');
+      const ratio = hits / K, p = ratio >= 0.9 ? praise() : ratio >= 0.5 ? 'Güzel ritim!' : 'İyi deneme!';
+      Sound.sfx.fanfare(); if (ratio >= 0.6) FX.confetti(80);
+      await ctx.talk(msg, p + ' 🥁 ' + hits + ' / ' + K + ' doğru vuruş. Hep birlikte sayalım!', p + ' Hep birlikte sayalım!');
       await recite(ctx, chips, chips.map((c, k) => (k + 1) * n));
-      let stars = hits >= 9 ? 3 : hits >= 6 ? 2 : 1;
-      if (extras >= 6 && stars > 1) stars--;
-      ctx.finish({ stars, correct: hits, wrong: misses + extras, extra: '🥁 ' + hits + '/10 vuruş' });
+      let stars = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1;
+      if (extras >= Math.max(6, Math.round(K * 0.5)) && stars > 1) stars--;
+      ctx.finish({ stars, correct: hits, wrong: misses + extras, extra: '🥁 ' + hits + '/' + K + ' vuruş' });
     }
   }
 };

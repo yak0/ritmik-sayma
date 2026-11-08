@@ -10,11 +10,14 @@ const GAME_LIST = [
   { id: 'balloon', icon: '🎈', name: 'Balon Patlat',     desc: 'Sıradaki sayının balonunu patlat', color: '#ff5d8f' },
   { id: 'rhythm',  icon: '🥁', name: 'Davul Ritmi',      desc: 'Ritme uy, doğru sayıda davula vur', color: '#8a5cf6' },
   { id: 'train',   icon: '🚂', name: 'Sayı Treni',       desc: 'Eksik vagonları tamamla', color: '#ff9f1c' },
+  { id: 'path',    icon: '🐰', name: 'Tavşanın Yolu',    desc: 'Sayıları takip et, havuca ulaş', color: '#14b8a6' },
+  { id: 'memory',  icon: '🃏', name: 'Hafıza Kartları',  desc: 'Soruyu cevabıyla eşleştir', color: '#e04fb3' },
+  { id: 'catch',   icon: '🧺', name: 'Sepete Yakala',    desc: 'Doğru sayıları sepetle yakala', color: '#f59e0b' },
   { id: 'rocket',  icon: '🚀', name: 'Aya Yolculuk',     desc: 'Soruları bil, roketi aya ulaştır', color: '#3a8dff' }
 ];
 const GAME_BY_ID = {};
 GAME_LIST.forEach(g => { GAME_BY_ID[g.id] = g; });
-const MIX_GAMES = ['balloon', 'train', 'rocket'];
+const MIX_GAMES = ['balloon', 'train', 'path', 'memory', 'rocket'];
 const NUM_COLORS = { 2: '#ff4d6d', 3: '#ff8c1a', 4: '#e8b100', 5: '#2fbf71', 6: '#14b8a6', 7: '#3a8dff', 8: '#8a5cf6', 9: '#e04fb3' };
 const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
 const BAL_COLORS = [
@@ -160,31 +163,82 @@ class GameCtx {
 }
 
 /* ---------------- Ortak arayüz parçaları ---------------- */
+/* Sayı dizisi çubuğu: az sayı varsa hepsi sığar; çoksa (ör. 2'şer 100'e kadar = 51 sayı)
+   çipler kayan bir şeride dizilir ve şerit hep o anki sayıyı ortada gösterir. */
 function seqChips(bar, count, color) {
   bar.innerHTML = '';
   if (color) bar.style.setProperty('--c', color);
+  const track = h('div', { class: 'seq-track' });
+  bar.append(track);
   const chips = [];
-  for (let i = 0; i < count; i++) { const c = h('span', { class: 'chip empty' }); bar.append(c); chips.push(c); }
+  for (let i = 0; i < count; i++) { const c = h('span', { class: 'chip empty' }); track.append(c); chips.push(c); }
   const fit = () => {
     const w = bar.clientWidth || window.innerWidth * 0.9;
-    bar.style.setProperty('--chip', clamp((w - (count - 1) * 6) / count, 30, 66) + 'px');
+    const fitSize = (w - (count - 1) * 6) / count;
+    const scroll = fitSize < 36;
+    const size = scroll ? clamp(w / 11 - 6, 36, 60) : clamp(fitSize, 30, 66);
+    bar.style.setProperty('--chip', size + 'px');
+    bar.classList.toggle('scroll', scroll);
+    bar._step = size + 6;
+    seqFocus(bar, bar._fi || 0, true);
   };
+  bar._fi = 0;
   fit(); requestAnimationFrame(fit);
   return chips;
 }
-function chipSet(c, text, cls) { c.className = 'chip ' + (cls || 'filled'); c.textContent = text; }
+function seqFocus(bar, i, instant) {
+  const track = bar && bar.firstElementChild;
+  if (!track || !track.classList.contains('seq-track')) return;
+  bar._fi = i;
+  if (!bar.classList.contains('scroll')) { track.style.transform = ''; return; }
+  const w = bar.clientWidth, total = track.children.length * bar._step - 6;
+  const x = clamp(i * bar._step + bar._step / 2 - w / 2, 0, Math.max(0, total - w));
+  if (instant) {
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(' + (-x) + 'px)';
+    void track.offsetWidth;
+    track.style.transition = '';
+  } else track.style.transform = 'translateX(' + (-x) + 'px)';
+}
+function chipFocus(c) {
+  const t = c && c.parentElement;
+  if (t && t.classList.contains('seq-track')) seqFocus(t.parentElement, Array.prototype.indexOf.call(t.children, c));
+}
+function chipSet(c, text, cls) { c.className = 'chip ' + (cls || 'filled'); c.textContent = text; chipFocus(c); }
 
-/* Sayıları sırayla parlatıp sesli okur */
-async function recite(r, chips, nums) {
-  const say = t => (r.say ? r.say(t, { rate: 1.05 }) : Voice.say(t, { rate: 1.05 }));
+/* Sayıları sırayla parlatıp sesli okur.
+   12'den az sayı: tek tek okunur. Daha uzun diziler: 10'arlı gruplar halinde akıcı okunur. */
+async function recite(r, els, nums, opts) {
+  opts = opts || {};
+  const say = (t, o) => (r.say ? r.say(t, o) : Voice.say(t, o));
   const wait = ms => (r.wait ? r.wait(ms) : sleep(ms));
-  for (let i = 0; i < nums.length; i++) {
+  const cls = opts.cls || 'lit', keep = !!opts.keep;
+  const light = i => {
+    const c = els[i]; if (!c) return;
+    c.classList.add(cls); chipFocus(c);
+    Sound.bell(72 + PENTA[i % PENTA.length], undefined, 0.05);
+  };
+  const unlight = i => { if (!keep && els[i]) els[i].classList.remove(cls); };
+  if (nums.length <= 12) {
+    for (let i = 0; i < nums.length; i++) {
+      if (!r.alive) return;
+      light(i);
+      await Promise.all([say(String(nums[i]), { rate: 1.05 }), wait(430)]);
+      unlight(i);
+    }
+    return;
+  }
+  for (let s = 0; s < nums.length; s += 10) {
     if (!r.alive) return;
-    const c = chips[i];
-    if (c) c.classList.add('lit');
-    Sound.bell(72 + PENTA[i % PENTA.length], undefined, 0.06);
-    await Promise.all([say(String(nums[i])), wait(430)]);
-    if (c) c.classList.remove('lit');
+    const part = nums.slice(s, s + 10);
+    const spoken = say(part.join(', '), { rate: 1.1 });
+    for (let j = 0; j < part.length; j++) {
+      if (!r.alive) return;
+      light(s + j);
+      await wait(opts.per || 470);
+      unlight(s + j);
+    }
+    await spoken;
   }
 }
 
@@ -286,7 +340,7 @@ const App = {
       grid.append(h('button', { class: 'num-card', 'data-act': 'number', 'data-n': n, style: { '--c': NUM_COLORS[n] } },
         h('div', { class: 'num-big' }, String(n)),
         h('div', { class: 'num-label' }, TR.label(n)),
-        h('div', { class: 'num-seq' }, n + ', ' + 2 * n + ', ' + 3 * n + '…'),
+        h('div', { class: 'num-seq' }, n + ', ' + 2 * n + ', ' + 3 * n + ' … ' + kmax(n) * n),
         h('div', { class: 'num-stars' }, '⭐ ' + st + ' / ' + max),
         done ? h('div', { class: 'num-medal' }, st === max ? '🏆' : '🏅') : null));
     }
@@ -299,8 +353,9 @@ const App = {
     const scr = $('#screen-number');
     scr.style.setProperty('--c', NUM_COLORS[n]);
     $('#nb-title').textContent = TR.label(n) + ' Sayalım';
-    const seq = $('#nb-seq'); seq.innerHTML = '';
-    for (let i = 0; i <= 10; i++) seq.append(h('span', { class: 'chip filled' }, String(i * n)));
+    const seq = $('#nb-seq');
+    seqChips(seq, kmax(n) + 1, NUM_COLORS[n]).forEach((c, i) => chipSet(c, String(i * n)));
+    seqFocus(seq, 0, true);
     const path = $('#nb-path'); path.innerHTML = '';
     GAME_LIST.forEach((g, i) => {
       const s = Store.stars(n, g.id);
@@ -318,6 +373,7 @@ const App = {
     this.stopRun();
     const run = this.run = { alive: true };
     const chips = $$('#nb-seq .chip');
+    chips.forEach(c => c.classList.remove('lit'));
     recite(run, chips, chips.map(c => +c.textContent));
   },
   stopRun() { if (this.run) { this.run.alive = false; this.run = null; Voice.cancel(); } },
@@ -344,16 +400,12 @@ const App = {
     const run = this.run = { alive: true };
     grid.style.setProperty('--c', NUM_COLORS[n]);
     cells.forEach(c => c.classList.remove('hl', 'hl2'));
-    $('#tb-msg').textContent = TR.label(n) + ' sayınca tabloda nasıl bir desen oluşuyor?';
-    await Voice.say(TR.speakLabel(n) + ' sayalım!');
-    let i = 0;
-    for (let m = n; m <= 100; m += n, i++) {
-      if (!run.alive) return;
-      cells[m - 1].classList.add(m <= 10 * n ? 'hl' : 'hl2');
-      Sound.bell(72 + PENTA[i % PENTA.length], undefined, 0.05);
-      if (m <= 10 * n) await Promise.all([Voice.say(String(m), { rate: 1.1 }), sleep(380)]);
-      else await sleep(110);
-    }
+    $('#tb-msg').textContent = TR.label(n) + ' 100\'e kadar sayınca tabloda nasıl bir desen oluşuyor?';
+    await Voice.say(TR.speakLabel(n) + ' yüze kadar sayalım!');
+    if (!run.alive) return;
+    const nums = [];
+    for (let m = n; m <= LIMIT; m += n) nums.push(m);
+    await recite(run, nums.map(m => cells[m - 1]), nums, { cls: 'hl', keep: true });
   },
 
   /* ---------- Karışık tekrar ---------- */

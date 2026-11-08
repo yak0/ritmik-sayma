@@ -5,14 +5,15 @@
    arka planda yeni sürümü indirir (bir sonraki açılışta görünür).
    Dosyaları güncelleyince VERSION değerini artırın.
    ========================================================= */
-const VERSION = 'v3';
+const VERSION = 'v5';
 const CACHE = 'ritmik-sayma-' + VERSION;
 const FONT_CACHE = 'ritmik-sayma-fonts';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'css/style.css',
   'js/util.js', 'js/audio.js', 'js/voice.js', 'js/fx.js', 'js/app.js',
-  'js/games/learn.js', 'js/games/balloon.js', 'js/games/rhythm.js', 'js/games/train.js', 'js/games/rocket.js',
+  'js/games/learn.js', 'js/games/balloon.js', 'js/games/rhythm.js', 'js/games/train.js',
+  'js/games/path.js', 'js/games/memory.js', 'js/games/catch.js', 'js/games/rocket.js',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 

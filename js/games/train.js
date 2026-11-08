@@ -56,19 +56,22 @@ Games.train = {
       const R = [];
       if (ctx.mixed) {
         for (let r = 0; r < 4; r++) {
-          const n = pick(ctx.ns), back = L.backward && r === 3;
-          const k0 = back ? rand(6, 10) : rand(0, 4), seq = [];
+          const n = pick(ctx.ns), K = kmax(n), back = L.backward && r === 3;
+          const k0 = back ? rand(5, K) : rand(0, K - 5), seq = [];
           for (let i = 0; i < 6; i++) seq.push((back ? k0 - i : k0 + i) * n);
           R.push(mk(n, seq, back, r === 0 || L.trainChoices === 3 ? 2 : 3));
         }
         return R;
       }
-      const n = ctx.n;
+      // Trenler 0'dan 100'e kadar olan aralığa yayılır (2'şer: 0-10, 30-40, 60-70, 90-100 …)
+      const n = ctx.n, K = kmax(n);
       const seg = (a, b) => { const s = []; if (a <= b) for (let k = a; k <= b; k++) s.push(k * n); else for (let k = a; k >= b; k--) s.push(k * n); return s; };
-      R.push(mk(n, seg(0, 5), false, 2));
-      R.push(mk(n, seg(3, 8), false, 2));
-      R.push(mk(n, seg(5, 10), false, L.trainChoices === 3 ? 2 : 3));
-      R.push(L.backward ? mk(n, seg(10, 5), true, 3) : mk(n, seg(2, 7), false, 3));
+      const T = K >= 20 ? 5 : 4, fwd = L.backward ? T - 1 : T;
+      for (let i = 0; i < fwd; i++) {
+        const s0 = Math.round(i * (K - 5) / Math.max(1, fwd - 1));
+        R.push(mk(n, seg(s0, s0 + 5), false, i < 2 || L.trainChoices === 3 ? 2 : 3));
+      }
+      if (L.backward) R.push(mk(n, seg(K, K - 5), true, 3));
       return R;
     }
 
@@ -205,7 +208,7 @@ Games.train = {
         await celebrate(r);
         await depart();
       }
-      ctx.finish({ stars: starsFrom(ctx.wrong, 1, 4) });
+      ctx.finish({ stars: starsBy(ctx.wrong, total) });
     })();
   }
 };

@@ -87,7 +87,7 @@ Games.balloon = {
         const c = Math.random() < L.near
           ? target + pick([-2, -1, 1, 2, n, -n, n + 1, n - 1, 2 * n, -1, 1])
           : rand(Math.max(1, target - 3 * n), target + 3 * n);
-        if (c >= 0 && c !== target && c <= 120 && !live.includes(c)) return c;
+        if (c >= 0 && c !== target && c <= LIMIT && !live.includes(c)) return c;
       }
       return null;
     }
@@ -169,19 +169,22 @@ Games.balloon = {
       lastTargetT = -10;
     }
 
+    /* 0'dan 100'e kadar olan dizi, en fazla 10 balonluk turlara bölünür:
+       2'şer → 0-20, 20-40 … 80-100 (5 tur); 9'ar → 0-54, 54-99 (2 tur) */
     function buildRounds() {
       if (ctx.mixed) {
         return [0, 1, 2].map(r => {
-          const n = pick(ctx.ns), back = L.balloonBack && r === 2;
-          const k0 = back ? rand(6, 10) : rand(0, 4), seq = [];
+          const n = pick(ctx.ns), K = kmax(n), back = L.balloonBack && r === 2;
+          const k0 = back ? rand(5, K) : rand(0, K - 5), seq = [];
           for (let i = 0; i < 6; i++) seq.push((back ? k0 - i : k0 + i) * n);
           return { n, seq, dir: back ? -1 : 1 };
         });
       }
-      const n = ctx.n, fw = [];
-      for (let i = 0; i <= 10; i++) fw.push(i * n);
-      const R = [{ n, seq: fw, dir: 1 }];
-      if (L.balloonBack) R.push({ n, seq: fw.slice().reverse(), dir: -1 });
+      const n = ctx.n, K = kmax(n), full = [];
+      for (let k = 0; k <= K; k++) full.push(k * n);
+      const parts = Math.ceil(K / 10), per = Math.ceil(K / parts), R = [];
+      for (let p = 0; p < parts; p++) R.push({ n, seq: full.slice(p * per, Math.min(K, (p + 1) * per) + 1), dir: 1 });
+      if (L.balloonBack) R.push({ n, seq: full.slice(Math.max(0, K - 10)).reverse(), dir: -1 });
       return R;
     }
 
@@ -204,16 +207,20 @@ Games.balloon = {
         round = rounds[r];
         chips = seqChips(bar, round.seq.length, NUM_COLORS[round.n]);
         chipSet(chips[0], String(round.seq[0]));
-        labelEl.textContent = (round.dir < 0 ? '⬅️ Geriye ' : '🎈 ') + TR.label(round.n);
+        labelEl.textContent = (round.dir < 0 ? '⬅️ Geriye ' : '🎈 ') + TR.label(round.n) +
+          (rounds.length > 1 ? ' · Tur ' + (r + 1) + '/' + rounds.length : '');
         labelEl.style.background = NUM_COLORS[round.n];
         const s0 = round.seq[0];
-        await ctx.talk(msg, TR.ablText(s0) + ' başla, ' + (round.dir < 0 ? 'geriye doğru ' : '') + '<b>' + TR.label(round.n) + '</b> say! Sıradaki sayının balonunu patlat 🎈');
+        const goOn = r > 0 && round.dir > 0 && !ctx.mixed && s0 === rounds[r - 1].seq[rounds[r - 1].seq.length - 1];
+        await ctx.talk(msg, goOn
+          ? 'Şimdi <b>' + TR.ablText(s0) + '</b> devam et, ' + TR.label(round.n) + ' say! 🎈'
+          : TR.ablText(s0) + ' başla, ' + (round.dir < 0 ? 'geriye doğru ' : '') + '<b>' + TR.label(round.n) + '</b> say! Sıradaki sayının balonunu patlat 🎈');
         ti = 1; setTarget(); active = true; spawnAcc = L.spawn;
         flash('', 0); msg.innerHTML = '';
         await new Promise(res => { resolveRound = res; });
         await celebrate();
       }
-      ctx.finish({ stars: starsFrom(ctx.wrong, 2, 5), extra: bonus ? '⭐ ' + bonus + ' bonus balon' : null });
+      ctx.finish({ stars: starsBy(ctx.wrong, total), extra: bonus ? '⭐ ' + bonus + ' bonus balon' : null });
     })();
   }
 };

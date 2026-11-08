@@ -29,30 +29,31 @@ Games.rocket = {
     const ITEMS = [['🍎', 'elma'], ['🌸', 'çiçek'], ['🐞', 'uğur böceği'], ['⭐', 'yıldız'], ['🍓', 'çilek'], ['🐟', 'balık'], ['🍪', 'kurabiye'], ['🦋', 'kelebek']];
 
     function gen(type, n) {
+      const K = kmax(n); // sorular 0–100 aralığından gelir
       if (type === 'next') {
-        const k = rand(0, 7), seq = [k * n, (k + 1) * n, (k + 2) * n];
+        const k = rand(0, K - 3), seq = [k * n, (k + 1) * n, (k + 2) * n];
         return { n, text: 'Sıradaki sayı hangisi?', speak: seq.join(', ') + '. Sıradaki sayı hangisi?', seq: seq.concat([null]), answer: (k + 3) * n, hint: seq[2] + ' + ' + n + ' = ?' };
       }
       if (type === 'missing') {
-        const k = rand(0, 6), arr = [k, k + 1, k + 2, k + 3].map(i => i * n), mi = rand(1, 2), a = arr[mi];
+        const k = rand(0, K - 3), arr = [k, k + 1, k + 2, k + 3].map(i => i * n), mi = rand(1, 2), a = arr[mi];
         const before = arr[mi - 1]; arr[mi] = null;
         return { n, text: 'Eksik sayı hangisi?', seq: arr, answer: a, hint: before + ' + ' + n + ' = ?' };
       }
       if (type === 'back') {
-        const k = rand(4, 10), seq = [k * n, (k - 1) * n, (k - 2) * n];
+        const k = rand(3, K), seq = [k * n, (k - 1) * n, (k - 2) * n];
         return { n, text: 'Geriye sayıyoruz. Sıradaki sayı hangisi?', speak: 'Geriye sayıyoruz. ' + seq.join(', ') + '. Sıradaki?', seq: seq.concat([null]), answer: (k - 3) * n, hint: seq[2] + ' − ' + n + ' = ?' };
       }
       if (type === 'after') {
-        const x = rand(1, 9) * n;
+        const x = rand(1, K - 1) * n;
         return { n, text: TR.label(n) + ' sayarken ' + TR.ablText(x) + ' sonra hangi sayı gelir?', answer: x + n, hint: x + ' + ' + n + ' = ?' };
       }
       if (type === 'before') {
-        const x = rand(2, 10) * n;
+        const x = rand(2, K) * n;
         return { n, text: TR.label(n) + ' sayarken ' + TR.ablText(x) + ' önce hangi sayı gelir?', answer: x - n, hint: x + ' − ' + n + ' = ?' };
       }
       if (type === 'which') {
-        const a = rand(2, 10) * n;
-        const pool = shuffle([a + 1, a - 1, a + 2, a - 2, a + 3, a - 3].filter(x => x > 0 && x % n !== 0));
+        const a = rand(2, K) * n;
+        const pool = shuffle([a + 1, a - 1, a + 2, a - 2, a + 3, a - 3, a - 5, a + 5, a - 7].filter(x => x > 0 && x <= LIMIT && x % n !== 0));
         return { n, text: 'Hangisi ' + TR.label(n) + ' sayarken söylenir?', answer: a, choices: shuffle([a].concat(pool.slice(0, 3))), hint: '0, ' + n + ', ' + 2 * n + ', ' + 3 * n + '… diye say!' };
       }
       // groups: sepetlerde n'er tane nesne

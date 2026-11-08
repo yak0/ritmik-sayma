@@ -98,6 +98,13 @@ function praise() {
   return nm ? p + ' ' + nm + '!' : p + '!';
 }
 function starsFrom(mistakes, a, b) { return mistakes <= a ? 3 : mistakes <= b ? 2 : 1; }
+/* Yanlış sayısını soru sayısına göre değerlendir (uzun oyunlarda biraz daha hoşgörülü) */
+function starsBy(wrong, total) {
+  return wrong <= Math.max(1, Math.round(total * 0.1)) ? 3 : wrong <= Math.max(4, Math.round(total * 0.3)) ? 2 : 1;
+}
+/* 100'e kadar kaç adım: 2 → 50 (100), 3 → 33 (99), 6 → 16 (96) ... */
+const LIMIT = 100;
+const kmax = n => Math.floor(LIMIT / n);
 
 /* Doğru cevap + şaşırtıcı seçenekler (yakın sayılar, bir önceki/sonraki ritmik sayı) */
 function numChoices(ans, n, count, easy) {
@@ -107,7 +114,7 @@ function numChoices(ans, n, count, easy) {
     : [ans + 1, ans - 1, ans + 2, ans - 2, ans + n, ans - n, ans + 10, ans - 10, ans + n + 1, ans + n - 1];
   shuffle(near).filter(x => x >= 0 && x <= 100 && x !== ans).forEach(c => { if (set.size < count) set.add(c); });
   let guard = 0;
-  while (set.size < count && guard++ < 60) set.add(rand(1, Math.max(20, ans + 12)));
+  while (set.size < count && guard++ < 60) set.add(rand(1, Math.min(100, Math.max(20, ans + 12))));
   return shuffle(Array.from(set));
 }
 
