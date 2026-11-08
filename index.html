@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ritmik Sayma">
+<meta name="theme-color" content="#6a4cff">
+<meta name="format-detection" content="telephone=no">
+<title>Ritmik Sayma Macerası</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Açılış -->
+  <section id="screen-splash" class="screen bg-menu active">
+    <div class="sp-float" aria-hidden="true">
+      <span style="--x:8%;--d:0s;--c:#ff4d6d">2</span><span style="--x:22%;--d:-3s;--c:#ff8c1a">3</span>
+      <span style="--x:36%;--d:-6s;--c:#ffd23f">4</span><span style="--x:52%;--d:-1.5s;--c:#2fbf71">5</span>
+      <span style="--x:66%;--d:-4.5s;--c:#14b8a6">6</span><span style="--x:78%;--d:-7.5s;--c:#3a8dff">7</span>
+      <span style="--x:88%;--d:-2.2s;--c:#8a5cf6">8</span><span style="--x:94%;--d:-5.2s;--c:#e04fb3">9</span>
+    </div>
+    <div class="sp-mascot">🦉</div>
+    <h1 class="sp-title">Ritmik Sayma<br><small>Macerası</small></h1>
+    <div class="sp-sub">2'şer, 3'er … 9'ar ritmik saymayı oynayarak öğren!</div>
+    <div class="sp-tap">👆 Başlamak için dokun</div>
+  </section>
+
+  <!-- Ana menü -->
+  <section id="screen-home" class="screen bg-menu">
+    <header class="topbar">
+      <div class="brand"><span class="brand-ico">🦉</span><span>Ritmik Sayma <b>Macerası</b></span></div>
+      <div class="top-actions">
+        <div class="star-pill">⭐ <span id="total-stars">0</span></div>
+        <button class="btn-icon fs-btn" data-act="fullscreen" aria-label="Tam ekran">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+        <button class="btn-icon" data-act="settings" aria-label="Ayarlar">⚙️</button>
+      </div>
+    </header>
+    <div class="home-hello" id="home-hello">Hangi sayıyla sayalım?</div>
+    <div class="num-grid" id="num-grid"></div>
+    <div class="home-extra">
+      <button class="btn btn-big" data-act="mixed" style="--bc:#ff8a3d;--bs:#c45a12">🔀 Karışık Tekrar</button>
+      <button class="btn btn-big" data-act="table" style="--bc:#14b8a6;--bs:#0b7d71">🔢 Sayı Tablosu</button>
+    </div>
+  </section>
+
+  <!-- Sayı ekranı: oyun yolu -->
+  <section id="screen-number" class="screen bg-menu">
+    <header class="topbar">
+      <button class="btn-icon" data-act="home" aria-label="Geri">⬅️</button>
+      <div class="topbar-title" id="nb-title"></div>
+      <button class="btn-icon" data-act="settings" aria-label="Ayarlar">⚙️</button>
+    </header>
+    <div class="nb-seqwrap">
+      <div class="seq-bar nb-seq" id="nb-seq"></div>
+      <button class="btn btn-sm nb-listen" data-act="listen" style="--bc:#fff;--bs:rgba(0,0,0,.15)">🔊 Dinle</button>
+    </div>
+    <div class="nb-path" id="nb-path"></div>
+  </section>
+
+  <!-- Oyun -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <button class="btn-icon hud-back" data-act="quit" aria-label="Mola">⏸️</button>
+      <div class="hud-title"><span id="hud-ico"></span><span id="hud-name"></span><span class="hud-n" id="hud-n"></span></div>
+      <div class="hud-progress"><div class="hud-bar" id="hud-bar"></div></div>
+    </div>
+    <div id="stage" class="stage"></div>
+  </section>
+
+  <!-- Sayı tablosu -->
+  <section id="screen-table" class="screen bg-menu">
+    <header class="topbar">
+      <button class="btn-icon" data-act="home" aria-label="Geri">⬅️</button>
+      <div class="topbar-title">🔢 Sayı Tablosu</div>
+      <div class="btn-icon ghost"></div>
+    </header>
+    <div class="tb-chips" id="tb-chips"></div>
+    <div class="tb-msg" id="tb-msg"></div>
+    <div class="tb-body" id="tb-grid"></div>
+  </section>
+
+  <div id="modal-root"></div>
+  <canvas id="fx-canvas"></canvas>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/app.js"></script>
+<script src="js/games/learn.js"></script>
+<script src="js/games/balloon.js"></script>
+<script src="js/games/rhythm.js"></script>
+<script src="js/games/train.js"></script>
+<script src="js/games/rocket.js"></script>
+<script>
+  // İnternette (https) yayınlandığında oyunu tablete kaydet → çevrimdışı çalışır
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>

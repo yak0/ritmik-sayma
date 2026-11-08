@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabletle Bağlan</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<style>
+  :root { --ink: #2b2250; --soft: #6b6390; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, sans-serif; color: var(--ink);
+    background: linear-gradient(160deg, #6a4cff 0%, #9b5cff 48%, #ff7eb3 100%);
+    display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+  }
+  .card { background: #fff; border-radius: 28px; padding: 28px; width: min(100%, 860px); box-shadow: 0 12px 0 rgba(0,0,0,.12), 0 30px 60px rgba(0,0,0,.25); }
+  h1 { margin: 0 0 4px; font-size: 32px; }
+  .sub { color: var(--soft); margin: 0 0 22px; font-size: 18px; }
+  .grid { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .qr-box { text-align: center; }
+  #qr { width: 240px; height: 240px; padding: 12px; background: #fff; border: 4px solid #efeaff; border-radius: 20px; display: grid; place-items: center; }
+  #qr img, #qr canvas { width: 100% !important; height: auto !important; }
+  .qr-cap { margin-top: 8px; color: var(--soft); font-size: 15px; }
+  .steps { flex: 1; min-width: 260px; }
+  ol { padding-left: 22px; margin: 0; font-size: 18px; line-height: 1.55; }
+  li { margin-bottom: 8px; }
+  .url { display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: 20px; font-weight: 700; color: #6c4cf5; background: #f3f0ff; padding: 4px 10px; border-radius: 10px; margin: 2px 0; user-select: all; }
+  .alt { font-size: 15px; color: var(--soft); }
+  .btns { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  a.btn { text-decoration: none; background: #2fbf71; color: #fff; font-weight: 700; padding: 12px 22px; border-radius: 999px; box-shadow: 0 5px 0 #1d8a4f; font-size: 18px; }
+  a.btn.alt2 { background: #f1edff; color: var(--ink); box-shadow: 0 5px 0 #cfc6f5; }
+  .note { margin-top: 22px; background: #fff7e0; border-radius: 16px; padding: 14px 18px; font-size: 15px; color: #7a5300; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>📱 Tabletle bağlan</h1>
+    <p class="sub">Tablet bu bilgisayarla <b>aynı Wi-Fi ağında</b> olmalı.</p>
+    <div class="grid">
+      <div class="qr-box">
+        <div id="qr">Yükleniyor…</div>
+        <div class="qr-cap">Tabletin kamerasıyla okut</div>
+      </div>
+      <div class="steps">
+        <ol>
+          <li>Tabletin kamerasını QR koda tut <b>veya</b> tarayıcıya şunu yaz:<br>
+            <span class="url" id="url">…</span><br>
+            <span class="alt" id="alt"></span></li>
+          <li>Açılan sayfada <b>“Başlamak için dokun”</b> deyince oyun tam ekrana geçer.</li>
+          <li><b>iPad:</b> Safari → Paylaş ⬆️ → <b>Ana Ekrana Ekle</b>.<br><b>Android:</b> Chrome ⋮ → <b>Ana ekrana ekle</b>.<br>Böylece oyun simgesinden tek dokunuşla açılır.</li>
+        </ol>
+        <div class="btns">
+          <a class="btn" href="index.html">▶ Oyunu bu bilgisayarda aç</a>
+          <a class="btn alt2" href="#" id="copy">📋 Adresi kopyala</a>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      💡 <b>Sorun mu var?</b> Mac “gelen bağlantılara izin verilsin mi?” diye sorarsa <b>İzin Ver</b> deyin.
+      Oyun oynanırken bu bilgisayar açık ve sunucu penceresi çalışıyor olmalı (sayfa bir kez yüklendikten sonra oyun büyük ölçüde sunucusuz da devam eder).
+    </div>
+  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(async function () {
+  let url = location.origin, alt = '';
+  try {
+    const r = await fetch('api/info');
+    const d = await r.json();
+    const ip = (d.ips || [])[0];
+    if (ip && ip !== '127.0.0.1') url = 'http://' + ip + ':' + d.port;
+    if (d.host) alt = 'ya da: http://' + d.host + ':' + d.port;
+  } catch (e) { /* sunucu bilgisi yoksa mevcut adres */ }
+  document.getElementById('url').textContent = url;
+  document.getElementById('alt').textContent = alt;
+  const box = document.getElementById('qr');
+  box.textContent = '';
+  if (window.QRCode) new QRCode(box, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+  else box.textContent = 'QR kod yüklenemedi — adresi elle yazın.';
+  document.getElementById('copy').addEventListener('click', e => {
+    e.preventDefault();
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => { e.target.textContent = '✅ Kopyalandı'; });
+  });
+})();
+</script>
+</body>
+</html>
