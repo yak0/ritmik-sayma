@@ -5,7 +5,7 @@
    arka planda yeni sürümü indirir (bir sonraki açılışta görünür).
    Dosyaları güncelleyince VERSION değerini artırın.
    ========================================================= */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'ritmik-sayma-' + VERSION;
 const FONT_CACHE = 'ritmik-sayma-fonts';
 const ASSETS = [

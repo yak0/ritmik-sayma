@@ -19,7 +19,7 @@ Games.rocket = {
       '<div class="rk-stars">' + starsHtml + '</div><div class="rk-planet"></div>' +
       '<div class="rk-track"><div class="rk-line"></div><div class="rk-moon">🌕</div><div class="rk-earth">🌍</div>' +
       '<div class="rk-rocket"><i class="rk-flame"></i><span>🚀</span></div></div>' +
-      '<div class="rk-main"><div class="rk-card"><div class="rk-tag"></div><div class="rk-q"></div><div class="rk-vis"></div><div class="rk-ans"></div></div>' +
+      '<div class="rk-main"><div class="rk-card" style="display:none"><div class="rk-tag"></div><div class="rk-q"></div><div class="rk-vis"></div><div class="rk-ans"></div></div>' +
       '<div class="msg static rk-msg"></div></div>';
     const rocket = $('.rk-rocket', S), line = $('.rk-line', S), card = $('.rk-card', S);
     const tag = $('.rk-tag', S), qEl = $('.rk-q', S), vis = $('.rk-vis', S), ansEl = $('.rk-ans', S), msg = $('.rk-msg', S);
@@ -92,6 +92,7 @@ Games.rocket = {
     }
 
     function ask(q, qi) {
+      card.style.display = '';
       restartAnim(card, 'card-in');
       tag.textContent = 'Soru ' + (qi + 1) + ' / 10 · ' + TR.label(q.n);
       tag.style.background = NUM_COLORS[q.n];
