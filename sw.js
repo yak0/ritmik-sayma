@@ -5,7 +5,7 @@
    arka planda yeni sürümü indirir (bir sonraki açılışta görünür).
    Dosyaları güncelleyince VERSION değerini artırın.
    ========================================================= */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'ritmik-sayma-' + VERSION;
 const FONT_CACHE = 'ritmik-sayma-fonts';
 const ASSETS = [
@@ -17,7 +17,10 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache:'reload' → tarayıcının eski HTTP önbelleğini atla, her zaman en yeni dosyayı al
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -35,7 +38,7 @@ self.addEventListener('fetch', e => {
 
   // Oyun dosyaları: önce kayıtlı kopya, arka planda güncelle
   if (url.origin === self.location.origin) {
-    const net = fetch(req).then(res => {
+    const net = fetch(req.url, { cache: 'no-cache' }).then(res => {
       if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => null);
